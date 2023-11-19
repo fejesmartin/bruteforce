@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using Codecool.BruteForce.Authentication;
 using Codecool.BruteForce.Passwords.Breaker;
 using Codecool.BruteForce.Passwords.Generator;
@@ -28,7 +29,7 @@ internal static class Program
         var passwordGenerators = CreatePasswordGenerators();
         IUserGenerator userGenerator = new UserGenerator(passwordGenerators);
         int userCount = 10;
-        int maxPwLength = 4;
+        int maxPwLength = 3;
         
         AddUsersToDb(userCount, maxPwLength, userGenerator, userRepository);
         foreach (var user in allUsers)
@@ -62,7 +63,7 @@ internal static class Program
     {
         var lowercasePwGen = new PasswordGenerator(LowercaseChars);
         var uppercasePwGen = new PasswordGenerator(LowercaseChars, UppercaseChars);
-        IPasswordGenerator numbersPwGen = new PasswordGenerator(LowercaseChars, UppercaseChars, Numbers); //lowercase + uppercase + numbers
+        IPasswordGenerator numbersPwGen = new PasswordGenerator(LowercaseChars, UppercaseChars, Numbers);
 
         return new List<IPasswordGenerator>
         {
@@ -78,39 +79,43 @@ internal static class Program
         for (int i = 1; i <= userCount; i++)
         {
             var user = $"user{i}";
-            for (int j = 1; j <= maxPwLength; j++)
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            Console.WriteLine($"Trying to break {user} with all possible password combinations...\nThis might take a while..");
+            
+
+            bool userPasswordFound = false;
+            
+            for (int currentLength = 1; currentLength <= maxPwLength; currentLength++)
             {
-                Console.WriteLine($"Trying to break {user} with all possible password combinations with length = {j}... ");
-
-                //start Stopwatch
-
-                //Get all pw combinations
-                var pwCombinations = passwordBreaker.GetCombinations(maxPwLength);
-                bool broken = false;
+                var pwCombinations = passwordBreaker.GetCombinations(currentLength);
 
                 foreach (var pw in pwCombinations)
                 {
-                    //Try to authenticate the current user with pw
-                   
-                   
-                    if (authenticationService.Authenticate(allUsers[i-1].Item1, allUsers[i-1].Item2))
+
+                    if (authenticationService.Authenticate(allUsers[i - 1].Item1, pw))
                     {
-                        Console.WriteLine(pw);
-                        if (pw == allUsers[i-1].Item2)
+                        Console.WriteLine($"Authentication successful for {user} with password: {pw}");
+
+                        if (pw == allUsers[i - 1].Item2)
                         {
                             Console.WriteLine($"User: {user}, Password found: {pw}");
-                         
+                            stopwatch.Stop();
+                            TimeSpan elapsed = stopwatch.Elapsed;
+                            Console.WriteLine($"Elapsed time: {elapsed}");
+                            userPasswordFound = true;
+                            break;
                         }
                     }
-                    
-                    //If successful, stop the stopwatch, and print the pw and the elapsed time to the console, then go to next user
                 }
-
-                if (broken)
+                if (userPasswordFound)
                 {
                     break;
                 }
             }
         }
     }
+
+
 }
