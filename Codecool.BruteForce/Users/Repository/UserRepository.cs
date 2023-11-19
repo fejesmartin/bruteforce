@@ -43,7 +43,7 @@ public class UserRepository : IUserRepository
 
     public void Update(int id, string userName, string password)
     {
-        var query = @$"UPDATE users SET user_name = '{userName}, password = '{password} WHERE id={id}";
+        var query = @$"UPDATE users SET user_name = '{userName}', password = '{password}' WHERE id={id}";
         ExecuteNonQuery(query);
     }
 
